@@ -92,15 +92,56 @@ export default function Game() {
     availableIndexes.splice(randomIndex, 1);
   }
 
-  /** Returns the number of mines surrounding a given square.
+  /** Returns the number of mines surrounding a given square,
+   *  or -1 if the given square is a mine.
    *  Square is determined by the passed row and column indexes.
    */
   function countAdjacentMines(rowIndex, columnIndex) {
-    let numberOfMines = 0;
+    let adjacentMines = 0;
 
-    // Check each square around current one...
+    if (initialMinefield[rowIndex][columnIndex] != -1) {
+      // Check each of the 8 potential squares surrounding the given square.
+      const surroundingIndexes = [
+        [rowIndex - 1, columnIndex - 1], // top left
+        [rowIndex - 1, columnIndex], // top center
+        [rowIndex - 1, columnIndex + 1], // top right
+        [rowIndex, columnIndex - 1], // middle left
+        [rowIndex, columnIndex + 1], // middle right
+        [rowIndex + 1, columnIndex - 1], // bottom left
+        [rowIndex + 1, columnIndex], // bottom center
+        [rowIndex + 1, columnIndex + 1], // bottom right
+      ];
 
-    return numberOfMines;
+      surroundingIndexes.forEach((indexes) => {
+        // Check the row and column indexes are within the range of the arrays.
+        if (
+          indexes[0] >= 0 &&
+          indexes[0] < boardRows &&
+          indexes[1] >= 0 &&
+          indexes[1] < boardColumns
+        ) {
+          // Index is valid, so check for a mine.
+          if (initialMinefield[indexes[0]][indexes[1]] == -1) {
+            adjacentMines++;
+          }
+        }
+      });
+    } else {
+      // Return the mine value (-1) to continue showing that square is a mine.
+      adjacentMines = -1;
+    }
+
+    return adjacentMines;
+  }
+
+  // Calculate adjacent mines for each square
+  for (let i = 0; i < boardRows; i++) {
+    // Each time create new row array
+    for (let j = 0; j < boardColumns; j++) {
+      // Add items to the current new row
+      let adjacentMines = countAdjacentMines(i, j);
+      initialMinefield[i][j] = adjacentMines;
+    }
   }
 
   /** Lists how many mines surround each mine.
