@@ -3,14 +3,22 @@ import { useState } from "react";
 
 /**
  * Component that displays a single square button.
- *
- * TODO: On click...
  */
-function Square({ value }) {
-  //TODO: Different render depending on if square is dug or not.
-
-  // TODO: onClick={onSquareClick}
-  return <button className="square">{value}</button>;
+function Square({ value, squareState, onSquareClick }) {
+  // Display content depending on if the square has been dug, flag placed, or untouched.
+  let squareDisplay;
+  if (squareState == 1) {
+    squareDisplay = value;
+  } else if (squareState == 2) {
+    squareDisplay = "f";
+  } else {
+    squareDisplay = "";
+  }
+  return (
+    <button className="square" onClick={onSquareClick}>
+      {squareDisplay}
+    </button>
+  );
 }
 
 /**
@@ -18,17 +26,40 @@ function Square({ value }) {
  *
  * TODO: Handles...
  */
-function Board({ minefield, history, rows, columns }) {
-  function handleClick() {
-    //TODO
+function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
+  function handleClick(rowIndex, columnIndex) {
+    // TODO: Handles differently if right or left click.
+
+    //debug
+    //console.log("handleClick", event);
+
+    // Left click / dig:
+    // if already dug, flag is on space, TODO: or game is over
+    if (flagsAndDigs[rowIndex][columnIndex] > 0) {
+      return;
+    } //else {}
+
+    // Update the square as dug:
+    // Copy entire board array and replace the clicked square value with dug.
+
+    const nextFlagOrDig = flagsAndDigs.slice();
+    nextFlagOrDig[rowIndex][columnIndex] = 1;
+    onPlay(nextFlagOrDig);
   }
 
   // Render the board from the given minefield array
   const squareList = minefield.map((row, rowIndex) => {
-    const rowList = row.map((square, columnIndex) => {
+    const rowList = row.map((squareValue, columnIndex) => {
       // Render individual squares in a row
       //TODO: Different render depending on if square is dug or not.
-      return <Square key={columnIndex} value={square} />;
+      return (
+        <Square
+          key={columnIndex}
+          value={squareValue}
+          squareState={flagsAndDigs[rowIndex][columnIndex]}
+          onSquareClick={() => handleClick(rowIndex, columnIndex)}
+        />
+      );
     });
     // Render rows of squares
     return (
@@ -47,6 +78,7 @@ export default function Game() {
   const boardColumns = 20;
   const numberOfMines = 55;
   //const maxAdjacentMines = 6;
+  const [lastClickIndex, setLastClickIndex] = useState([0, 0]); // The last clicked square indexes
 
   // Generate the minefield --------------------------------------------
   // First populate a list with empty mine locations
@@ -147,20 +179,36 @@ export default function Game() {
   /** Lists how many mines surround each mine.
    *    -1: mine
    *   0-8: number of adjacent mines
-   * Array(size of rows) of arrays(each the size of columns).
    */
   const [minefield, setMinefield] = useState(initialMinefield);
   //-----------------------------------------------------------------
 
+  // Initialize array for flags and digs history
+  let initialHistory = [];
+  for (let i = 0; i < boardRows; i++) {
+    // Each time create new row array
+    let newRow = [];
+    for (let j = 0; j < boardColumns; j++) {
+      // Add items to the current new row
+      newRow.push(0);
+    }
+    initialHistory.push(newRow);
+  }
   /** Records where the player has:
    *  null: has not clicked
-   *     0: right clicked to 'dig'
-   *     1: left clicked to 'place a flag'
-   * Array(size of rows) of arrays(each the size of columns)
+   *     0: untouched, not dug and no flag
+   *     1: left clicked to 'dig'
+   *     2: right clicked to place or remove a 'flag'
    */
-  const [history, setHistory] = useState(
-    Array(boardRows).fill(Array(boardColumns).fill(null))
-  );
+  const [flagsAndDigs, setFlagsAndDigs] = useState(initialHistory);
+
+  /** Updates the board after a click.
+   * Is given a new board array with updated dig and flag placements.
+   * nextFlagOrDig: an entire board array with the updated new flag or dig.
+   */
+  function handlePlay(nextFlagOrDig) {
+    setFlagsAndDigs(nextFlagOrDig);
+  }
 
   return (
     <div className="App">
@@ -168,9 +216,10 @@ export default function Game() {
       <div className="game">
         <Board
           minefield={minefield}
-          history={history}
+          flagsAndDigs={flagsAndDigs}
           rows={boardRows}
           columns={boardColumns}
+          onPlay={handlePlay}
         />
       </div>
     </div>
