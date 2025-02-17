@@ -1,3 +1,4 @@
+import React from "react";
 import { useState } from "react";
 // import { ReactPropTypes } from "react";
 
@@ -15,7 +16,11 @@ function Square({ value, squareState, onSquareClick }) {
     squareDisplay = "";
   }
   return (
-    <button className="square" onClick={onSquareClick}>
+    <button
+      className="square"
+      onClick={onSquareClick}
+      onContextMenu={onSquareClick}
+    >
       {squareDisplay}
     </button>
   );
@@ -23,41 +28,80 @@ function Square({ value, squareState, onSquareClick }) {
 
 /**
  * Component that displays a grid of Square components.
- *
- * TODO: Handles...
+ * Handles when a Square is clicked, and passes updated data to the Game.
  */
 function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
-  function handleClick(rowIndex, columnIndex) {
-    // TODO: Handles differently if right or left click.
+  // OLD:  function handleClick(rowIndex, columnIndex) {}
 
-    //debug
-    //console.log("handleClick", event);
+  /**
+   * Occurs when one of the Board's Squares are clicked.
+   * Determines what happens after a right or left click.
+   * For the given Square(by its indexes) either nothing happens, it gets dug, or a flag is placed or removed.
+   * rowIndex: row indedx of the clicked Square.
+   * columnIndex: column index of the clicked Square.
+   * event: the event passed from the clicked Square. Used to determine right/left click.
+   */
+  const handleClick = React.useCallback((rowIndex, columnIndex, event) => {
+    /** The state of the Square that was just clicked. */
+    const currentSquareState = flagsAndDigs[rowIndex][columnIndex];
 
-    // Left click / dig:
-    // if already dug, flag is on space, TODO: or game is over
-    if (flagsAndDigs[rowIndex][columnIndex] > 0) {
+    // Prevent context menu from opening on right click
+    event.preventDefault();
+
+    // if the square is already dug, or TODO: the game has ended (|| gameFinished),
+    // no new actions/clicks should update anything.
+    if (currentSquareState == 1) {
       return;
-    } //else {}
+    } // else {}
 
-    // Update the square as dug:
-    // Copy entire board array and replace the clicked square value with dug.
-
+    /** Make a copy of the board to update and pass to Game. */
     const nextFlagOrDig = flagsAndDigs.slice();
-    nextFlagOrDig[rowIndex][columnIndex] = 1;
+
+    // only required if nextFlagOrDig updating was done outsaide of case block. **
+    //let newSquareState = currentSquareState;
+
+    // Determine if square was right or left clicked.
+    // Currently nextFlagOrDig is changed inside the case so there are no unnecessary changes.**
+    // (using a synthetic event for detecting right/left click)
+    switch (event.type) {
+      case "click":
+        console.log(`Left click`);
+        if (currentSquareState != 2) {
+          // Current square has no flag, so it can be dug.
+          nextFlagOrDig[rowIndex][columnIndex] = 1;
+          // newSquareState = 1;
+        }
+        break;
+      case "contextmenu":
+        console.log(`Right click`);
+
+        // Flags can be placed and removed. This block toggles the flag.
+        if (currentSquareState != 2) {
+          // Current square has no flag, so place a flag.
+          nextFlagOrDig[rowIndex][columnIndex] = 2;
+        } else {
+          // Flag is already placed on the current square, so remove flag.
+          nextFlagOrDig[rowIndex][columnIndex] = 0;
+        }
+        break;
+    }
+
+    // Send updated flag/dig data to the Game
     onPlay(nextFlagOrDig);
-  }
+  }, []);
+
+  // TODO: Render game over/ongoing text.
 
   // Render the board from the given minefield array
   const squareList = minefield.map((row, rowIndex) => {
     const rowList = row.map((squareValue, columnIndex) => {
       // Render individual squares in a row
-      //TODO: Different render depending on if square is dug or not.
       return (
         <Square
           key={columnIndex}
           value={squareValue}
           squareState={flagsAndDigs[rowIndex][columnIndex]}
-          onSquareClick={() => handleClick(rowIndex, columnIndex)}
+          onSquareClick={(e) => handleClick(rowIndex, columnIndex, e)}
         />
       );
     });
@@ -73,12 +117,11 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
 }
 
 export default function Game() {
-  // TODO: values that come from difficulty selected:
+  // TODO: values that come from difficulty selected
   const boardRows = 15;
   const boardColumns = 20;
   const numberOfMines = 55;
   //const maxAdjacentMines = 6;
-  const [lastClickIndex, setLastClickIndex] = useState([0, 0]); // The last clicked square indexes
 
   // Generate the minefield --------------------------------------------
   // First populate a list with empty mine locations
@@ -124,9 +167,10 @@ export default function Game() {
     availableIndexes.splice(randomIndex, 1);
   }
 
-  /** Returns the number of mines surrounding a given square,
-   *  or -1 if the given square is a mine.
-   *  Square is determined by the passed row and column indexes.
+  /**
+   * Returns the number of mines surrounding a given square,
+   * or -1 if the given square is a mine.
+   * Square is determined by the passed row and column indexes.
    */
   function countAdjacentMines(rowIndex, columnIndex) {
     let adjacentMines = 0;
@@ -194,17 +238,18 @@ export default function Game() {
     }
     initialHistory.push(newRow);
   }
-  /** Records where the player has:
-   *  null: has not clicked
-   *     0: untouched, not dug and no flag
-   *     1: left clicked to 'dig'
-   *     2: right clicked to place or remove a 'flag'
+  /**
+   * Records if each square has nothing, a dug spot, or a flag.
+   *     0: nothing, not dug and currently no flag
+   *     1: has been left clicked to 'dig'
+   *     2: has been right clicked to place a 'flag'
+   *        (Note: Flags can be placed and removed with right click)
    */
   const [flagsAndDigs, setFlagsAndDigs] = useState(initialHistory);
 
-  /** Updates the board after a click.
+  /**
+   * Updates the board after a click.
    * Is given a new board array with updated dig and flag placements.
-   * nextFlagOrDig: an entire board array with the updated new flag or dig.
    */
   function handlePlay(nextFlagOrDig) {
     setFlagsAndDigs(nextFlagOrDig);
@@ -225,3 +270,5 @@ export default function Game() {
     </div>
   );
 }
+
+// TODO: function to determine if game is over or ongoing.
