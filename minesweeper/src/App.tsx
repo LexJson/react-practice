@@ -34,6 +34,63 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
   // OLD:  function handleClick(rowIndex, columnIndex) {}
 
   /**
+   * Digs all adjacent Squares of a given Square if it has no adjacent mines.
+   * If one of the adjacent Squares also has no adjacent mines,
+   * recursively call this function.
+   * rowIndex: row indedx of a given Square.
+   * columnIndex: column index of a given Square.
+   * currentFlagsAndDigs: a current version of the game's flag and dig data.
+   * returns: a copy of Board array with new digs.
+   */
+  function chainDig(rowIndex, columnIndex, currentFlagsAndDigs) {
+    if (minefield[rowIndex][columnIndex] != 0) {
+      //console.log(minefield[rowIndex][columnIndex], ": No further chain");
+      return currentFlagsAndDigs;
+    } else {
+      // Copy of the given array to update any new digs.
+      let chainDigs = currentFlagsAndDigs.slice();
+
+      // Each of the 8 potential squares surrounding the given square.
+      const surroundingIndexes = [
+        [rowIndex - 1, columnIndex - 1], // top left
+        [rowIndex - 1, columnIndex], // top center
+        [rowIndex - 1, columnIndex + 1], // top right
+        [rowIndex, columnIndex - 1], // middle left
+        [rowIndex, columnIndex + 1], // middle right
+        [rowIndex + 1, columnIndex - 1], // bottom left
+        [rowIndex + 1, columnIndex], // bottom center
+        [rowIndex + 1, columnIndex + 1], // bottom right
+      ];
+
+      // Dig each adjacent square if not already dug or flagged
+      surroundingIndexes.forEach((indexes) => {
+        // Check the row and column indexes are within the range of the arrays.
+        if (
+          indexes[0] >= 0 &&
+          indexes[0] < rows &&
+          indexes[1] >= 0 &&
+          indexes[1] < columns
+        ) {
+          // Index is valid, so dig the square ONLY IF there is no flag AND it has not been dug.
+          // This prevents unnecessary updates to the flag/dig list. (Causes error: Maximum call stack size exceeded)
+          if (currentFlagsAndDigs[indexes[0]][indexes[1]] == 0) {
+            // console.log("Chain dig at: ", minefield[indexes[0]][indexes[1]]);
+
+            // Update the current square
+            chainDigs[indexes[0]][indexes[1]] = 1;
+
+            // Update flag/dig list with potential adjacent square chains
+            // Passes the current chain digs so any updates are not lost.
+            chainDigs = chainDig(indexes[0], indexes[1], chainDigs);
+          }
+        }
+      });
+      // Return updated flags and digs list after recursing through all adjacent squares.
+      return chainDigs;
+    }
+  }
+
+  /**
    * Occurs when one of the Board's Squares are clicked.
    * Determines what happens after a right or left click.
    * For the given Square(by its indexes) either nothing happens, it gets dug, or a flag is placed or removed.
@@ -52,10 +109,10 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
     // no new actions/clicks should update anything.
     if (currentSquareState == 1) {
       return;
-    } // else {}
+    }
 
     /** Make a copy of the board to update and pass to Game. */
-    const nextFlagOrDig = flagsAndDigs.slice();
+    let nextFlagOrDig = flagsAndDigs.slice();
 
     // only required if nextFlagOrDig updating was done outsaide of case block. **
     //let newSquareState = currentSquareState;
@@ -69,7 +126,9 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
         if (currentSquareState != 2) {
           // Current square has no flag, so it can be dug.
           nextFlagOrDig[rowIndex][columnIndex] = 1;
-          // newSquareState = 1;
+
+          // On a successful dig, check if there is a chain-dig reaction
+          nextFlagOrDig = chainDig(rowIndex, columnIndex, nextFlagOrDig);
         }
         break;
       case "contextmenu":
@@ -90,7 +149,7 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
     onPlay(nextFlagOrDig);
   }, []);
 
-  // TODO: Render game over/ongoing text.
+  // TODO: Render game over/ongoing text or UI.
 
   // Render the board from the given minefield array
   const squareList = minefield.map((row, rowIndex) => {
