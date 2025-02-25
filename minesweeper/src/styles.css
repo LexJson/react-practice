@@ -9,7 +9,7 @@
 
 /* Used to make the appearance of buttons look like a grid when together */
 .square {
-  background: #fff;
+  background: #f0f0f0;
   border: 1px solid #999;
   float: left;
   font-size: 24px;

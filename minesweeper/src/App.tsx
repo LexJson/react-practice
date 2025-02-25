@@ -6,10 +6,18 @@ import { useState } from "react";
  * Component that displays a single square button.
  */
 function Square({ value, squareState, onSquareClick }) {
+  // Colour that square backgrounds will be set to whether they're dug or not dug
+  const dugSquareColour = "#cfcfcf";
+  const notDugSquareColour = "#f0f0f0";
+
   // Display content depending on if the square has been dug, flag placed, or untouched.
   let squareDisplay;
   if (squareState == 1) {
-    squareDisplay = value;
+    if (value == 0) {
+      squareDisplay = "";
+    } else {
+      squareDisplay = value;
+    }
   } else if (squareState == 2) {
     squareDisplay = "f";
   } else {
@@ -18,6 +26,9 @@ function Square({ value, squareState, onSquareClick }) {
   return (
     <button
       className="square"
+      style={{
+        background: squareState == 1 ? dugSquareColour : notDugSquareColour,
+      }}
       onClick={onSquareClick}
       onContextMenu={onSquareClick}
     >
