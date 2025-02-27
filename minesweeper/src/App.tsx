@@ -10,6 +10,45 @@ function Square({ value, squareState, onSquareClick }) {
   const dugSquareColour = "#cfcfcf";
   const notDugSquareColour = "#f0f0f0";
 
+  /**
+   * Returns a specific colour from a given number.
+   * Default colour returned is "black".
+   */
+  function getValueColour(someValue) {
+    let valueColour;
+    switch (someValue) {
+      case 1:
+        valueColour = "blue";
+        break;
+      case 2:
+        valueColour = "green";
+        break;
+      case 3:
+        valueColour = "red";
+        break;
+      case 4:
+        valueColour = "navy";
+        break;
+      case 5:
+        valueColour = "maroon";
+        break;
+      case 6:
+        valueColour = "teal";
+        break;
+      case 7:
+        valueColour = "black";
+        break;
+      case 8:
+        valueColour = "gray";
+        break;
+      default:
+        valueColour = "black";
+    }
+    return valueColour;
+  }
+
+  let valueColour = getValueColour(value);
+
   // Display content depending on if the square has been dug, flag placed, or untouched.
   let squareDisplay;
   if (squareState == 1) {
@@ -28,6 +67,7 @@ function Square({ value, squareState, onSquareClick }) {
       className="square"
       style={{
         background: squareState == 1 ? dugSquareColour : notDugSquareColour,
+        color: valueColour,
       }}
       onClick={onSquareClick}
       onContextMenu={onSquareClick}
@@ -41,7 +81,14 @@ function Square({ value, squareState, onSquareClick }) {
  * Component that displays a grid of Square components.
  * Handles when a Square is clicked, and passes updated data to the Game.
  */
-function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
+function Board({
+  minefield,
+  flagsAndDigs,
+  rows,
+  columns,
+  onPlay,
+  numberOfMines,
+}) {
   // OLD:  function handleClick(rowIndex, columnIndex) {}
 
   /**
@@ -133,7 +180,7 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
     // (using a synthetic event for detecting right/left click)
     switch (event.type) {
       case "click":
-        console.log(`Left click`);
+        //console.log(`Left click`);
         if (currentSquareState != 2) {
           // Current square has no flag, so it can be dug.
           nextFlagOrDig[rowIndex][columnIndex] = 1;
@@ -143,7 +190,7 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
         }
         break;
       case "contextmenu":
-        console.log(`Right click`);
+        //console.log(`Right click`);
 
         // Flags can be placed and removed. This block toggles the flag.
         if (currentSquareState != 2) {
@@ -159,8 +206,6 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
     // Send updated flag/dig data to the Game
     onPlay(nextFlagOrDig);
   }, []);
-
-  // TODO: Render game over/ongoing text or UI.
 
   // Render the board from the given minefield array
   const squareList = minefield.map((row, rowIndex) => {
@@ -183,15 +228,20 @@ function Board({ minefield, flagsAndDigs, rows, columns, onPlay }) {
     );
   });
 
-  return <>{squareList}</>;
+  return (
+    <>
+      {/* <div className="status">{status}</div> */}
+      {squareList}
+    </>
+  );
 }
 
 export default function Game() {
   // TODO: values that come from difficulty selected
-  const boardRows = 15;
-  const boardColumns = 20;
-  const numberOfMines = 55;
-  //const maxAdjacentMines = 6;
+  const boardRows = 10; // small:10, medium:15
+  const boardColumns = 14; // small:14, medium:20
+  const numberOfMines = 25; // small:25, medium:55
+  const [status, setStatus] = useState("");
 
   // Generate the minefield --------------------------------------------
   // First populate a list with empty mine locations
@@ -323,11 +373,31 @@ export default function Game() {
    */
   function handlePlay(nextFlagOrDig) {
     setFlagsAndDigs(nextFlagOrDig);
+
+    const gameIsWon = calculateWin(
+      minefield,
+      flagsAndDigs,
+      boardRows,
+      boardColumns,
+      numberOfMines
+    );
+
+    if (gameIsWon == null) {
+      //status = gameIsWon ? "You Win!" : "You Lose";
+      setStatus("");
+    } else if (!gameIsWon) {
+      setStatus("You Lose");
+    } else if (gameIsWon) {
+      setStatus("You Win");
+    }
   }
 
   return (
     <div className="App">
-      <h2>This will be minesweeper</h2>
+      <div className="header" style={{ width: boardColumns * 34 }}>
+        {/* <h2>This will be minesweeper</h2> */}
+        <div className="status">{status}</div>
+      </div>
       <div className="game">
         <Board
           minefield={minefield}
@@ -335,10 +405,53 @@ export default function Game() {
           rows={boardRows}
           columns={boardColumns}
           onPlay={handlePlay}
+          numberOfMines={numberOfMines}
         />
       </div>
     </div>
   );
 }
 
-// TODO: function to determine if game is over or ongoing.
+/**
+ * Determines if the game has been won, lost, or is still going.
+ * returns: true if the game is won, false if the game is lost, null if the game is not done yet.
+ */
+function calculateWin(
+  minefield,
+  flagsAndDigs,
+  boardRows,
+  boardColumns,
+  numberOfMines
+) {
+  // Loss: If any dug squares have a mine, game is lost.
+  // Win: If all possible squares have been dug, meaning only mines remain un-dug.
+
+  // Number of dug squares, according to the flagsAndDigs list.
+  let numberOfDigs = 0;
+
+  // Find each dug square and determine if it was a mine
+  for (let i = 0; i < boardRows; i++) {
+    for (let j = 0; j < boardColumns; j++) {
+      // Check each item and its dig state
+      if (flagsAndDigs[i][j] == 1) {
+        numberOfDigs++;
+        if (minefield[i][j] == -1) {
+          // Game was lost, return false to notify the Board
+          console.log("Game Lost");
+          return false;
+        }
+      }
+    }
+  }
+  // No mines have been dug.
+  // Check if all possible squares have been dug.
+  if (numberOfDigs == boardRows * boardColumns - numberOfMines) {
+    // Game was won, return true to notify the Board.
+    console.log("Game Won");
+    return true;
+  } else {
+    // Game is still going, return null to signify it's not won or lost.
+    console.log("Game Ongoing");
+    return null;
+  }
+}
