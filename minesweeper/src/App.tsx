@@ -9,6 +9,7 @@ function Square({ value, squareState, onSquareClick }) {
   // Colour that square backgrounds will be set to whether they're dug or not dug
   const dugSquareColour = "#cfcfcf";
   const notDugSquareColour = "#f0f0f0";
+  let valueColour = "black";
 
   /**
    * Returns a specific colour from a given number.
@@ -47,14 +48,13 @@ function Square({ value, squareState, onSquareClick }) {
     return valueColour;
   }
 
-  let valueColour = getValueColour(value);
-
   // Display content depending on if the square has been dug, flag placed, or untouched.
   let squareDisplay;
   if (squareState == 1) {
     if (value == 0) {
       squareDisplay = "";
     } else {
+      valueColour = getValueColour(value);
       squareDisplay = value;
     }
   } else if (squareState == 2) {
@@ -89,8 +89,6 @@ function Board({
   onPlay,
   numberOfMines,
 }) {
-  // OLD:  function handleClick(rowIndex, columnIndex) {}
-
   /**
    * Digs all adjacent Squares of a given Square if it has no adjacent mines.
    * If one of the adjacent Squares also has no adjacent mines,
@@ -163,9 +161,13 @@ function Board({
     // Prevent context menu from opening on right click
     event.preventDefault();
 
-    // if the square is already dug, or TODO: the game has ended (|| gameFinished),
+    // if the square is already dug, or the game has ended,
     // no new actions/clicks should update anything.
-    if (currentSquareState == 1) {
+    if (
+      currentSquareState == 1 ||
+      calculateWin(minefield, flagsAndDigs, rows, columns, numberOfMines) !=
+        null
+    ) {
       return;
     }
 
@@ -228,20 +230,17 @@ function Board({
     );
   });
 
-  return (
-    <>
-      {/* <div className="status">{status}</div> */}
-      {squareList}
-    </>
-  );
+  //TODO: put the flag count in the header ****
+  return <>{squareList}</>;
 }
 
 export default function Game() {
   // TODO: values that come from difficulty selected
-  const boardRows = 10; // small:10, medium:15
-  const boardColumns = 14; // small:14, medium:20
-  const numberOfMines = 25; // small:25, medium:55
+  const boardRows = 15; // small:10, medium:15
+  const boardColumns = 20; // small:14, medium:20
+  const numberOfMines = 55; // small:25, medium:55
   const [status, setStatus] = useState("");
+  const [flagsRemaining, setFlagsRemaining] = useState(0);
 
   // Generate the minefield --------------------------------------------
   // First populate a list with empty mine locations
@@ -396,9 +395,12 @@ export default function Game() {
     <div className="App">
       <div className="header" style={{ width: boardColumns * 34 }}>
         {/* <h2>This will be minesweeper</h2> */}
+        <div className="flags-remaining">{flagsRemaining}</div>
         <div className="status">{status}</div>
+        <div className="timer">{"000"}</div>
       </div>
-      <div className="game">
+
+      <div className="board">
         <Board
           minefield={minefield}
           flagsAndDigs={flagsAndDigs}
