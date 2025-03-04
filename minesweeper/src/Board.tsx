@@ -1,6 +1,15 @@
-import React from "react";
+import React, { MouseEventHandler } from "react";
 import { Square } from "./Square";
 import calculateWin from "./CalculateWin";
+
+type BoardProps = {
+  minefield: number[][];
+  flagsAndDigs: number[][];
+  rows: number;
+  columns: number;
+  onPlay: Function;
+  numberOfMines: number;
+};
 
 /**
  * Component that displays a grid of Square components.
@@ -13,7 +22,7 @@ export function Board({
   columns,
   onPlay,
   numberOfMines,
-}) {
+}: BoardProps) {
   /**
    * Digs all adjacent Squares of a given Square if it has no adjacent mines.
    * If one of the adjacent Squares also has no adjacent mines,
@@ -23,7 +32,11 @@ export function Board({
    * currentFlagsAndDigs: a current version of the game's flag and dig data.
    * returns: a copy of Board array with new digs.
    */
-  function chainDig(rowIndex, columnIndex, currentFlagsAndDigs) {
+  function chainDig(
+    rowIndex: number,
+    columnIndex: number,
+    currentFlagsAndDigs: number[][]
+  ) {
     if (minefield[rowIndex][columnIndex] != 0) {
       //console.log(minefield[rowIndex][columnIndex], ": No further chain");
       return currentFlagsAndDigs;
@@ -79,60 +92,63 @@ export function Board({
    * columnIndex: column index of the clicked Square.
    * event: the event passed from the clicked Square. Used to determine right/left click.
    */
-  const handleClick = React.useCallback((rowIndex, columnIndex, event) => {
-    /** The state of the Square that was just clicked. */
-    const currentSquareState = flagsAndDigs[rowIndex][columnIndex];
+  const handleClick = React.useCallback(
+    (rowIndex: number, columnIndex: number, event: Event) => {
+      /** The state of the Square that was just clicked. */
+      const currentSquareState = flagsAndDigs[rowIndex][columnIndex];
 
-    // Prevent context menu from opening on right click
-    event.preventDefault();
+      // Prevent context menu from opening on right click
+      event.preventDefault();
 
-    // if the square is already dug, or the game has ended,
-    // no new actions/clicks should update anything.
-    if (
-      currentSquareState == 1 ||
-      calculateWin(minefield, flagsAndDigs, rows, columns, numberOfMines) !=
-        null
-    ) {
-      return;
-    }
+      // if the square is already dug, or the game has ended,
+      // no new actions/clicks should update anything.
+      if (
+        currentSquareState == 1 ||
+        calculateWin(minefield, flagsAndDigs, rows, columns, numberOfMines) !=
+          null
+      ) {
+        return;
+      }
 
-    /** Make a copy of the board to update and pass to Game. */
-    let nextFlagOrDig = flagsAndDigs.slice();
+      /** Make a copy of the board to update and pass to Game. */
+      let nextFlagOrDig = flagsAndDigs.slice();
 
-    // only required if nextFlagOrDig updating was done outsaide of case block. **
-    //let newSquareState = currentSquareState;
+      // only required if nextFlagOrDig updating was done outsaide of case block. **
+      //let newSquareState = currentSquareState;
 
-    // Determine if square was right or left clicked.
-    // Currently nextFlagOrDig is changed inside the case so there are no unnecessary changes.**
-    // (using a synthetic event for detecting right/left click)
-    switch (event.type) {
-      case "click":
-        //console.log(`Left click`);
-        if (currentSquareState != 2) {
-          // Current square has no flag, so it can be dug.
-          nextFlagOrDig[rowIndex][columnIndex] = 1;
+      // Determine if square was right or left clicked.
+      // Currently nextFlagOrDig is changed inside the case so there are no unnecessary changes.**
+      // (using a synthetic event for detecting right/left click)
+      switch (event.type) {
+        case "click":
+          //console.log(`Left click`);
+          if (currentSquareState != 2) {
+            // Current square has no flag, so it can be dug.
+            nextFlagOrDig[rowIndex][columnIndex] = 1;
 
-          // On a successful dig, check if there is a chain-dig reaction
-          nextFlagOrDig = chainDig(rowIndex, columnIndex, nextFlagOrDig);
-        }
-        break;
-      case "contextmenu":
-        //console.log(`Right click`);
+            // On a successful dig, check if there is a chain-dig reaction
+            nextFlagOrDig = chainDig(rowIndex, columnIndex, nextFlagOrDig);
+          }
+          break;
+        case "contextmenu":
+          //console.log(`Right click`);
 
-        // Flags can be placed and removed. This block toggles the flag.
-        if (currentSquareState != 2) {
-          // Current square has no flag, so place a flag.
-          nextFlagOrDig[rowIndex][columnIndex] = 2;
-        } else {
-          // Flag is already placed on the current square, so remove flag.
-          nextFlagOrDig[rowIndex][columnIndex] = 0;
-        }
-        break;
-    }
+          // Flags can be placed and removed. This block toggles the flag.
+          if (currentSquareState != 2) {
+            // Current square has no flag, so place a flag.
+            nextFlagOrDig[rowIndex][columnIndex] = 2;
+          } else {
+            // Flag is already placed on the current square, so remove flag.
+            nextFlagOrDig[rowIndex][columnIndex] = 0;
+          }
+          break;
+      }
 
-    // Send updated flag/dig data to the Game
-    onPlay(nextFlagOrDig);
-  }, []);
+      // Send updated flag/dig data to the Game
+      onPlay(nextFlagOrDig);
+    },
+    []
+  );
 
   // Render the board from the given minefield array
   const squareList = minefield.map((row, rowIndex) => {
@@ -143,7 +159,7 @@ export function Board({
           key={columnIndex}
           value={squareValue}
           squareState={flagsAndDigs[rowIndex][columnIndex]}
-          onSquareClick={(e) => handleClick(rowIndex, columnIndex, e)}
+          onSquareClick={(e: any) => handleClick(rowIndex, columnIndex, e)}
         />
       );
     });

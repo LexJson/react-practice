@@ -1,20 +1,23 @@
 import { useState } from "react";
-// import { ReactPropTypes } from "react";
 import { Board } from "./Board";
 import calculateWin from "./CalculateWin";
 
 export default function Game() {
   // TODO: values that come from difficulty selected
-  const boardRows = 15; // small:10, medium:15
-  const boardColumns = 20; // small:14, medium:20
-  const numberOfMines = 55; // small:25, medium:55
-  const [status, setStatus] = useState("");
-  const [flagsRemaining, setFlagsRemaining] = useState(0);
+  const boardRows: number = 15; // small:10, medium:15
+  const boardColumns: number = 20; // small:14, medium:20
+  const numberOfMines: number = 55; // small:25, medium:55
+  type GameStatus = "" | ":)" | ":(";
+  const [status, setStatus] = useState<GameStatus>("");
+  const [flagsRemaining, setFlagsRemaining] = useState<number>(0);
+  // If you want to be very specific:
+  //type FlagAndDigData = 0 | 1 | 2;
+  //type MinefieldData = -1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
   // Generate the minefield --------------------------------------------
   // First populate a list with empty mine locations
   // BAD - All arrays are the same: let initialMinefield = Array(boardRows).fill(Array(boardColumns).fill(0));
-  let initialMinefield = [];
+  let initialMinefield: number[][] = [];
   for (let i = 0; i < boardRows; i++) {
     // Each time create new row array
     let newRow = [];
@@ -60,7 +63,7 @@ export default function Game() {
    * or -1 if the given square is a mine.
    * Square is determined by the passed row and column indexes.
    */
-  function countAdjacentMines(rowIndex, columnIndex) {
+  function countAdjacentMines(rowIndex: number, columnIndex: number) {
     let adjacentMines = 0;
 
     if (initialMinefield[rowIndex][columnIndex] != -1) {
@@ -112,7 +115,7 @@ export default function Game() {
    *    -1: mine
    *   0-8: number of adjacent mines
    */
-  const [minefield, setMinefield] = useState(initialMinefield);
+  const [minefield, setMinefield] = useState<number[][]>(initialMinefield);
   //-----------------------------------------------------------------
 
   // Initialize array for flags and digs history
@@ -133,13 +136,13 @@ export default function Game() {
    *     2: has been right clicked to place a 'flag'
    *        (Note: Flags can be placed and removed with right click)
    */
-  const [flagsAndDigs, setFlagsAndDigs] = useState(initialHistory);
+  const [flagsAndDigs, setFlagsAndDigs] = useState<number[][]>(initialHistory);
 
   /**
    * Updates the board after a click.
    * Is given a new board array with updated dig and flag placements.
    */
-  function handlePlay(nextFlagOrDig) {
+  function handlePlay(nextFlagOrDig: number[][]) {
     setFlagsAndDigs(nextFlagOrDig);
 
     const gameIsWon = calculateWin(
@@ -151,19 +154,17 @@ export default function Game() {
     );
 
     if (gameIsWon == null) {
-      //status = gameIsWon ? "You Win!" : "You Lose";
       setStatus("");
     } else if (!gameIsWon) {
-      setStatus("You Lose");
+      setStatus(":(");
     } else if (gameIsWon) {
-      setStatus("You Win");
+      setStatus(":)");
     }
   }
 
   return (
     <div className="App">
       <div className="header" style={{ width: boardColumns * 34 }}>
-        {/* <h2>This will be minesweeper</h2> */}
         <div className="flags-remaining">{flagsRemaining}</div>
         <div className="status">{status}</div>
         <div className="timer">{"000"}</div>
